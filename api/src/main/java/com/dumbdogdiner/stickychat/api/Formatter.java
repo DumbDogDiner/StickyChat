@@ -4,10 +4,12 @@ import com.dumbdogdiner.stickychat.api.misc.SignNotification;
 import com.dumbdogdiner.stickychat.api.util.WithPlayer;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 /**
@@ -105,6 +107,68 @@ public interface Formatter extends WithPlayer {
         }
 
         return rootComponent;
+    }
+
+    // Wrote this myself, based off of the HTTP RFC; should be correct enough for our use
+    Pattern URI_REGEX = Pattern.compile("https?://(?:(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\.)*[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)(?::[0-9]+)?(?:/(?:[A-Za-z0-9$_.+!*'(),;:@&=-]|%[0-9A-Fa-f]{2})*(?:/(?:[A-Za-z0-9$_.+!*'(),;:@&=-]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9$_.+!*'(),;:@&=-]|%[0-9A-Fa-f]{2})*)?)?");
+
+    /**
+     * Make links clickable.
+     *
+     * @param message The message
+     */
+    static void linkLinks(TextComponent message) {
+        var messageString = message.getText();
+        // See if our message contains any links
+        var matcher = URI_REGEX.matcher(messageString);
+        var indices = new ArrayList<Integer>();
+        indices.add(0);
+        // find links
+        var messageContainedLinks = false;
+        while (matcher.find()) {
+            indices.add(matcher.start());
+            indices.add(matcher.end());
+            messageContainedLinks = true;
+        }
+        indices.add(messageString.length());
+        // Alternate through segments, linking the links
+        var messageSegments = new ArrayList<BaseComponent>();
+        var isLink = false;
+        for (int i = 1; i < indices.size(); ++i) {
+            var substring = messageString.substring(indices.get(i - 1), indices.get(i));
+            if (!substring.isEmpty()) {
+                var component = new TextComponent(substring);
+                if (isLink) {
+                    component.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, substring));
+                }
+                messageSegments.add(component);
+            }
+            isLink = !isLink;
+        }
+        // need to be extra careful not to create a component with an empty extras list
+        var currentExtra = message.getExtra();
+        if (currentExtra != null) {
+            var newExtra = new ArrayList<BaseComponent>();
+            // recursively apply
+            for (var extra : currentExtra) {
+                if (extra instanceof TextComponent) {
+                    linkLinks((TextComponent) extra);
+                }
+                newExtra.add(extra);
+            }
+            if (messageContainedLinks) {
+                messageSegments.addAll(newExtra);
+                message.setText("");
+                message.setExtra(messageSegments);
+            } else {
+                message.setExtra(newExtra);
+            }
+        } else {
+            if (messageContainedLinks) {
+                message.setText("");
+                message.setExtra(messageSegments);
+            }
+        }
     }
 
     /**

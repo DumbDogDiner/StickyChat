@@ -42,7 +42,9 @@ class StickyFormatter private constructor(private val player: Player) : WithPlug
                 .apply { Placeholders.setPlaceholdersSafe(this.player, it) }
                 .get()
 
-        return Formatter.formatHexCodes(interp)
+        val result = Formatter.formatHexCodes(interp)
+        Formatter.linkLinks(result)
+        return result
     }
 
     /**
@@ -55,7 +57,10 @@ class StickyFormatter private constructor(private val player: Player) : WithPlug
                 .replace("%message%", message)
                 .apply { Placeholders.setPlaceholdersSafe(this.player, it) }
                 .get()
-        return Formatter.formatHexCodes(interp)
+
+        val result = Formatter.formatHexCodes(interp)
+        Formatter.linkLinks(result)
+        return result
     }
 
     override fun formatOutgoingDM(to: Player, message: String): TextComponent {
@@ -64,7 +69,10 @@ class StickyFormatter private constructor(private val player: Player) : WithPlug
                 .replace("%to_name%", to.name)
                 .replace("%message%", message)
                 .get()
-        return Formatter.formatHexCodes(interp)
+
+        val result = Formatter.formatHexCodes(interp)
+        Formatter.linkLinks(result)
+        return result
     }
 
     override fun formatIncomingDM(from: Player, message: String): TextComponent {
@@ -73,7 +81,10 @@ class StickyFormatter private constructor(private val player: Player) : WithPlug
                 .replace("%to_name%", this.player.name)
                 .replace("%message%", message)
                 .get()
-        return Formatter.formatHexCodes(interp)
+
+        val result = Formatter.formatHexCodes(interp)
+        Formatter.linkLinks(result)
+        return result
     }
 
     override fun formatSignSpyNotification(notification: SignNotification): BaseComponent {
